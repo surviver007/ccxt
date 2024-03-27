@@ -8,19 +8,17 @@ sys.path.append(root + '/python')
 
 import ccxt  # noqa: E402
 
-
 exchange = ccxt.binance({
     "apiKey": "YOUR_API_KEY",
     "secret": "YOUR_SECRET",
 })
 
-
 orders = [
     {
-        "symbol" : "BTCUSDT",
-        "side" : "BUY",
-        "positionSide" : "LONG",
-        "type" : "MARKET",
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "positionSide": "LONG",
+        "type": "MARKET",
         "quantity": float(0.005)
     }
 ]

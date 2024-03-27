@@ -15,7 +15,10 @@ print('CCXT Version:', ccxt.__version__)
 
 
 def main():
-    exchange = ccxt.binance()
+    exchange = ccxt.binance(({
+    'apiKey': 'eFB7692qkk1KOExLrE0PM05aEIqODSvSn7Ny5pFHHGk9t7IE8YpeHwUimQkcvjr7',
+    'secret': 'S7TJ8QHTT7BsX2shd8MBQItszVRxaVQpGNhLXRsD1eLn671HBntalSvNvOsS2NSY',
+}))
     markets = exchange.load_markets()
     # exchange.verbose = True  # uncomment for debugging purposes
     ohlcv = exchange.fetch_ohlcv('BTC/USDT', '1m')
