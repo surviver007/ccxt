@@ -1,67 +1,77 @@
-import requests
-import time
+# 导入所需的库
+import websocket
+import json
+import ccxt
+
+# 定义币安现货和合约交易所
+exchange_spot = ccxt.binance({
+    'apiKey': 'eFB7692qkk1KOExLrE0PM05aEIqODSvSn7Ny5pFHHGk9t7IE8YpeHwUimQkcvjr7',
+    'secret': 'S7TJ8QHTT7BsX2shd8MBQItszVRxaVQpGNhLXRsD1eLn671HBntalSvNvOsS2NSY',
+    'enableRateLimit': True,  # 启用币安的速率限制
+})
+
+exchange_futures = ccxt.binance({
+    'apiKey': 'eFB7692qkk1KOExLrE0PM05aEIqODSvSn7Ny5pFHHGk9t7IE8YpeHwUimQkcvjr7',
+    'secret': 'S7TJ8QHTT7BsX2shd8MBQItszVRxaVQpGNhLXRsD1eLn671HBntalSvNvOsS2NSY',
+    'enableRateLimit': True,  # 启用币安的速率限制
+    'urls': {
+        'api': 'https://fapi.binance.com/api/v3',
+        'fapi': 'https://fapi.binance.com/fapi/v1',
+    }
+})
+
+# 定义交易对和套利参数
+symbol = 'ETHUSDT'
+spread = 0.01  # 套利价格差异阈值
 
 
-# 假设我们有三个交易所的API接口
-# 获取交易所A的价格
-def get_price_exchange_a(crypto1, crypto2):
-    # 这里应该是调用交易所A的API获取价格
-    # 返回格式为：{'price': 价格}
-    response = requests.get(f"https://exchange-a.com/api/prices/{crypto1}_{crypto2}")
-    return response.json()
+# 定义websocket回调函数
+def on_open(ws):
+    subscribe_message = {
+        "method": "SUBSCRIBE",
+        "params": [f"{symbol}@kline_1m"],
+        "id": 1
+    }
+    ws.send(json.dumps(subscribe_message))
 
 
-# 获取交易所B的价格
-def get_price_exchange_b(crypto1, crypto2):
-    # 这里应该是调用交易所B的API获取价格
-    response = requests.get(f"https://exchange-b.com/api/prices/{crypto1}_{crypto2}")
-    return response.json()
+def on_message(ws, message):
+    try:
+        data = json.loads(message)
+        if 'k' in data and symbol in data['k']:
+            # 获取现货和合约的最新价格
+            spot_price = exchange_spot.fetch_ticker(symbol)['last']
+            futures_price = exchange_futures.fetch_ticker(symbol)['last']
+
+            # 计算价格差异
+            price_difference = spot_price - futures_price
+
+            # 如果价格差异大于阈值，则执行套利交易
+            if abs(price_difference) > spread:
+                if price_difference > 0:
+                    # 现货价格高于合约，买入合约卖出现货
+                    print(f"现货价格高于合约价格, 套利机会: 现货价格 {spot_price}, 合约价格 {futures_price}")
+                    # 这里添加买入合约和卖出现货的代码
+                else:
+                    # 现货价格低于合约，买入现货卖出合约
+                    print(f"现货价格低于合约价格, 套利机会: 现货价格 {spot_price}, 合约价格 {futures_price}")
+                    # 这里添加买入现货和卖出合约的代码
+    except Exception as e:
+        print("Error handling message:", e)
 
 
-# 获取交易所C的价格
-def get_price_exchange_c(crypto1, crypto2):
-    # 这里应该是调用交易所C的API获取价格
-    response = requests.get(f"https://exchange-c.com/api/prices/{crypto1}_{crypto2}")
-    return response.json()
+# 定义币安websocket连接的URL
+binance_websocket_url = "wss://stream.binance.com:9443/ws"
 
+# 创建websocket实例
+ws = websocket.WebSocketApp(
+    binance_websocket_url,
+    on_open=on_open,
+    on_message=on_message,
+    on_error=lambda ws, error: print("Error:", error),
+    on_close=lambda ws: print("Connection closed"),
+)
 
-# 检查是否存在套利机会
-def check_arbitrage(prices, transaction_fee):
-    # 检查价格差异是否足够大以覆盖交易费用
-    for crypto1, price1 in prices.items():
-        for crypto2, price2 in prices.items():
-            if crypto1 != crypto2:
-                price_diff = price1['price'] - price2['price']
-                if price_diff > transaction_fee:
-                    return True
-    return False
-
-
-# 主函数
-def main():
-    # 定义交易对和交易费用
-    trading_pairs = {'BTC_ETH': 1, 'ETH_LTC': 1, 'LTC_BTC': 1}
-    transaction_fee = 0.01  # 假设交易费用为0.01
-
-    # 获取三个交易所的价格
-    prices_a = get_price_exchange_a('BTC', 'ETH')
-    prices_b = get_price_exchange_b('ETH', 'LTC')
-    prices_c = get_price_exchange_c('LTC', 'BTC')
-
-    # 合并价格信息
-    all_prices = {**prices_a, **prices_b, **prices_c}
-
-    # 检查套利机会
-    if check_arbitrage(all_prices, transaction_fee):
-        # 这里应该执行交易逻辑，但由于是示例，我们只是打印信息
-        print("发现套利机会！")
-    else:
-        print("没有发现套利机会。")
-
-
-# 运行主函数
-if __name__ == "__main__":
-    while True:
-        main()
-        # 每隔一段时间检查一次套利机会
-        time.sleep(60)
+if __name__ == '__main__':
+    # 运行websocket客户端
+    ws.run_forever()
