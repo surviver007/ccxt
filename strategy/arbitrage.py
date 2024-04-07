@@ -1,10 +1,12 @@
 import ccxt
 import time
 
+proxy = {'http': 'http://127.0.0.1:7890', 'https': 'http://127.0.0.1:7890'}
 # 创建币安交易所实例
 exchange = ccxt.binance({
     'apiKey': 'eFB7692qkk1KOExLrE0PM05aEIqODSvSn7Ny5pFHHGk9t7IE8YpeHwUimQkcvjr7',
     'secret': 'S7TJ8QHTT7BsX2shd8MBQItszVRxaVQpGNhLXRsD1eLn671HBntalSvNvOsS2NSY',
+    'proxies': proxy
 })
 
 # 创建币安合约交易所实例
@@ -12,6 +14,7 @@ futures_exchange = ccxt.binance({
     'apiKey': 'eFB7692qkk1KOExLrE0PM05aEIqODSvSn7Ny5pFHHGk9t7IE8YpeHwUimQkcvjr7',
     'secret': 'S7TJ8QHTT7BsX2shd8MBQItszVRxaVQpGNhLXRsD1eLn671HBntalSvNvOsS2NSY',
     'options': {'defaultType': 'future'},
+    'proxies': proxy
 })
 
 
@@ -20,12 +23,12 @@ def arbitrage(symbol, amount, threshold):
     # 获取现货市场深度
     spot_orderbook = exchange.fetch_order_book(symbol)
     spot_price = spot_orderbook['bids'][0][0]
-    print(spot_price)
+    print('111', spot_price)
 
     # 获取合约市场深度
     futures_orderbook = futures_exchange.fetch_order_book(symbol)
     futures_price = futures_orderbook['bids'][0][0]
-    print(futures_price)
+    print('222', futures_price)
 
     # 计算价格差异
     price_diff = spot_price - futures_price
@@ -74,4 +77,4 @@ if __name__ == '__main__':
             print(f"发生错误: {e}")
 
         # 暂停一段时间再进行下一次套利检查
-        time.sleep(5)
+        time.sleep(60)
